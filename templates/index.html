@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IM-Milan | Best Time to Call Predictor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #ffffff;
+      color: #1f2937;
+      line-height: 1.5;
+      padding: 40px 20px 80px 20px;
+    }
+    .container {
+      max-width: 880px;
+      margin: 0 auto;
+    }
+    /* Header */
+    .header {
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #0b57d0;
+      margin-bottom: 8px;
+    }
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #0b57d0;
+      border-radius: 50%;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #6b7280;
+    }
+    .guardrail-pill {
+      margin-top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 6px;
+    }
+
+    /* Form Card */
+    .card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+    }
+    .input-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    input {
+      font-family: inherit;
+      font-size: 15px;
+      color: #111827;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 11px 14px;
+      outline: none;
+      transition: all 0.15s ease;
+      flex-grow: 1;
+    }
+    input:focus {
+      border-color: #0b57d0;
+      box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.12);
+    }
+    .sample-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+      align-items: center;
+    }
+    .chips-label {
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    .chip {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #4b5563;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+      color: #111827;
+    }
+    .chip-active {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+    .btn-submit {
+      background: #0b57d0;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: background-color 0.15s ease;
+    }
+    .btn-submit:hover {
+      background: #094ab4;
+    }
+    .btn-submit:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    /* Results */
+    #results-section {
+      display: none;
+    }
+    .seller-strip {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+    .strip-item strong {
+      color: #111827;
+      font-weight: 600;
+    }
+    .strip-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .section-date-badge {
+      font-size: 13px;
+      font-weight: 500;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    /* Window Cards */
+    .windows-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .window-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 20px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .window-card.primary {
+      border: 1.5px solid #0b57d0;
+      background: #fafcfe;
+    }
+    .window-card:hover {
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .card-meta-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .rank-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .rank-badge.rank-1 {
+      background: #e8f0fe;
+      color: #0b57d0;
+    }
+    .rank-badge.rank-2 {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+    .rank-badge.rank-3 {
+      background: #f9fafb;
+      color: #6b7280;
+    }
+
+    .calling-date-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e3a8a;
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+    .relative-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+    .relative-pill.today {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .relative-pill.future {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .confidence-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ecfdf5;
+      color: #059669;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #d1fae5;
+    }
+    .time-slot-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .time-slot {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+    .duration-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4b5563;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .reasoning-text {
+      font-size: 13.5px;
+      color: #374151;
+      line-height: 1.5;
+      padding-top: 10px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    /* Policy Note */
+    .policy-note {
+      background: #f9fafb;
+      border-left: 3px solid #0b57d0;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.5;
+    }
+    .policy-note strong {
+      color: #111827;
+    }
+
+    /* Spinner */
+    .spinner {
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 2px solid #ffffff;
+      width: 16px;
+      height: 16px;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <span class="brand-dot"></span> IM-Milan
+      </div>
+      <h1>IM-Milan: Best Time to Call Predictor</h1>
+      <p class="subtitle">AI-powered 15-minute call windows driven by IM-Milan Model 4 and live Redash PostgreSQL DWH records.</p>
+      <div class="guardrail-pill">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 10a1 1 0 011 1v2a1 1 0 11-2 0v-2a1 1 0 011-1zm0-4a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
+        </svg>
+        Operational Guardrail: Strictly 09:00 AM – 09:00 PM (15-min slots strictly after Hotlead timestamp)
+      </div>
+    </header>
+
+    <!-- Prediction Form -->
+    <div class="card">
+      <form id="predict-form">
+        <div class="form-group">
+          <label for="glid">Seller GLID</label>
+          <div class="input-row">
+            <input type="number" id="glid" name="glid" placeholder="Enter Seller GLID (e.g. 79959, 141000, 269847, 39323)" value="79959" required>
+            <button type="submit" id="submit-btn" class="btn-submit">
+              <span id="btn-text">Predict Top 3 Best 15-Min Times</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Select Chips -->
+        <div class="sample-chips">
+          <span class="chips-label">Quick Test GLIDs:</span>
+          <button type="button" class="chip chip-active" onclick="quickSelect(79959)">GLID 79959 (Ltd Co · Ahmedabad · PUA)</button>
+          <button type="button" class="chip" onclick="quickSelect(141000)">GLID 141000 (Proprietorship · Thane · PIM)</button>
+          <button type="button" class="chip" onclick="quickSelect(269847)">GLID 269847 (Proprietorship · Mumbai · PAM)</button>
+          <button type="button" class="chip" onclick="quickSelect(39323)">GLID 39323 (Proprietorship · Jaipur · PUA)</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results-section">
+      <!-- Seller Strip -->
+      <div class="seller-strip" id="seller-strip"></div>
+
+      <!-- Heading -->
+      <div class="section-title">
+        <span>Recommended 15-Minute Windows (Model 4 Sequence)</span>
+        <span class="section-date-badge" id="target-date-badge"></span>
+      </div>
+
+      <!-- Top 3 Windows Cards -->
+      <div class="windows-list" id="windows-list"></div>
+
+      <!-- Policy Note -->
+      <div class="policy-note" id="policy-note"></div>
+    </div>
+  </div>
+
+  <script>
+    function quickSelect(glid) {
+      document.getElementById('glid').value = glid;
+      // Highlight active chip
+      const buttons = document.querySelectorAll('.sample-chips .chip');
+      buttons.forEach(b => b.classList.remove('chip-active'));
+      event.target.classList.add('chip-active');
+      // Trigger submission
+      document.getElementById('predict-form').dispatchEvent(new Event('submit'));
+    }
+
+    document.getElementById('predict-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submit-btn');
+      const btnText = document.getElementById('btn-text');
+      const resultsSection = document.getElementById('results-section');
+      const glidVal = document.getElementById('glid').value;
+
+      submitBtn.disabled = true;
+      btnText.innerHTML = '<span class="spinner"></span> Querying Redash & Planning...';
+
+      try {
+        const response = await fetch('/api/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ glid: glidVal }),
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          renderResults(data);
+          resultsSection.style.display = 'block';
+          resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          alert('Notice: ' + data.message);
+        }
+      } catch (err) {
+        console.warn('API error:', err);
+        alert('Failed to connect to predictor server: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        btnText.innerText = 'Predict Top 3 Best 15-Min Times';
+      }
+    });
+
+    function renderResults(data) {
+      // 1. Seller strip
+      const s = data.seller;
+      const h = data.hotlead;
+
+      document.getElementById('seller-strip').innerHTML = `
+        <div class="strip-item">GLID: <strong>${s.glid}</strong></div>
+        <div class="strip-item">Location: <strong>${s.city}, ${s.state}</strong></div>
+        <div class="strip-item">Business: <strong>${s.business_type} (${s.nature_of_business})</strong></div>
+        <div class="strip-item">Turnover: <strong>${s.turnover}</strong></div>
+        <div class="strip-item">GST Year: <strong>${s.gst_registration_year}</strong></div>
+        <div class="strip-item">Hotlead Trigger: <span class="strip-badge">${h.hl_trigger}</span></div>
+        <div class="strip-item">Hotlead Arrived: <strong>${h.formatted_lead_time}</strong></div>
+        <div class="strip-item"><span class="strip-badge" style="background:#f0fdf4; border-color:#bbf7d0; color:#166534;">📡 ${h.source}</span></div>
+      `;
+
+      // 2. Date badge
+      document.getElementById('target-date-badge').innerText = `Hotlead: ${h.formatted_lead_time}`;
+
+      // 3. Render Top 3 Cards
+      const container = document.getElementById('windows-list');
+      container.innerHTML = '';
+
+      data.predictions.forEach((p, idx) => {
+        const isPrimary = p.rank === 1;
+        const card = document.createElement('div');
+        card.className = `window-card ${isPrimary ? 'primary' : ''}`;
+        card.innerHTML = `
+          <div class="card-top">
+            <div class="card-meta-left">
+              <span class="rank-badge rank-${p.rank}">${p.rank_label}</span>
+              <span class="calling-date-badge">📅 ${p.calling_date_formatted} (${p.calling_day})</span>
+              <span class="relative-pill ${p.is_same_day ? 'today' : 'future'}">${p.relative_day}</span>
+            </div>
+            <span class="confidence-badge">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+              ${p.confidence_score}
+            </span>
+          </div>
+          <div class="time-slot-row">
+            <div class="time-slot">${p.time_window}</div>
+            <span class="duration-tag">15 Mins</span>
+          </div>
+          <div class="reasoning-text">
+            ${p.reasoning}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      // 4. Policy note
+      document.getElementById('policy-note').innerHTML = `
+        <strong>Combined Meeting Probability:</strong> ${data.combined_chance_pct}% cumulative chance across the 3 attempts. <br>
+        <strong>Cadence Guidance:</strong> ${data.adaptive_retry_policy}
+      `;
+    }
+  </script>
+</body>
+</html>
