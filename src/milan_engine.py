@@ -49,7 +49,7 @@ PLANNER = Planner(meta)
 IST = timezone(timedelta(hours=5, minutes=30))
 
 
-def fetch_from_redash(glid: int, timeout_sec: int = 15) -> Optional[Dict[str, Any]]:
+def fetch_from_redash(glid: int, timeout_sec: int = 4) -> Optional[Dict[str, Any]]:
     """
     Executes the PG SQL query via Redash API to fetch seller details and latest hotlead.
     Checks cached query results (max_age: 86400) first, then falls back to fresh execution.
@@ -71,7 +71,7 @@ def fetch_from_redash(glid: int, timeout_sec: int = 15) -> Optional[Dict[str, An
             f"{REDASH_HOST}/api/query_results",
             headers=headers,
             json=payload_cached,
-            timeout=6,
+            timeout=3,
         )
         if resp.status_code == 200:
             res_data = resp.json()
@@ -95,7 +95,7 @@ def fetch_from_redash(glid: int, timeout_sec: int = 15) -> Optional[Dict[str, An
             f"{REDASH_HOST}/api/query_results",
             headers=headers,
             json=payload_fresh,
-            timeout=8,
+            timeout=4,
         )
         if resp.status_code == 200:
             res_data = resp.json()
@@ -108,11 +108,11 @@ def fetch_from_redash(glid: int, timeout_sec: int = 15) -> Optional[Dict[str, An
             job_id = job.get("id")
             if job_id:
                 while time.time() - t0 < timeout_sec:
-                    time.sleep(0.4)
+                    time.sleep(0.3)
                     j_resp = requests.get(
                         f"{REDASH_HOST}/api/jobs/{job_id}",
                         headers=headers,
-                        timeout=5,
+                        timeout=3,
                     )
                     j_data = j_resp.json().get("job", {})
                     status = j_data.get("status")

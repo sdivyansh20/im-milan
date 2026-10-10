@@ -188,6 +188,69 @@
       cursor: not-allowed;
     }
 
+    /* Collapsible Simulation Controls */
+    .override-accordion {
+      margin-top: 16px;
+      border-top: 1px dashed #e5e7eb;
+      padding-top: 14px;
+    }
+    .accordion-toggle {
+      background: none;
+      border: none;
+      color: #4b5563;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .accordion-toggle:hover {
+      color: #0b57d0;
+    }
+    .accordion-content {
+      margin-top: 12px;
+      background: #f9fafb;
+      border: 1px solid #f3f4f6;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .override-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+    }
+    .form-group-sub {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .form-group-sub label {
+      font-size: 12px;
+      color: #4b5563;
+      font-weight: 600;
+    }
+    .form-group-sub input, .form-group-sub select {
+      font-family: inherit;
+      font-size: 13px;
+      color: #111827;
+      background: #ffffff;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      outline: none;
+    }
+    .form-group-sub input:focus, .form-group-sub select:focus {
+      border-color: #0b57d0;
+    }
+    .override-hint {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+
     /* Results */
     #results-section {
       display: none;
@@ -489,6 +552,40 @@
           <button type="button" class="chip" onclick="quickSelect(269847)">GLID 269847 (Proprietorship · Mumbai · PAM)</button>
           <button type="button" class="chip" onclick="quickSelect(39323)">GLID 39323 (Proprietorship · Jaipur · PUA)</button>
         </div>
+
+        <!-- Collapsible Override Section -->
+        <div class="override-accordion">
+          <button type="button" class="accordion-toggle" onclick="toggleAccordion()">
+            <span id="accordion-icon">▶</span>
+            <span>Optional: Customize Hotlead Date, Time & Trigger (Testing / Simulation)</span>
+          </button>
+          <div id="accordion-content" class="accordion-content" style="display: none;">
+            <div class="override-grid">
+              <div class="form-group-sub">
+                <label for="hotlead_date">Hotlead Date</label>
+                <input type="date" id="hotlead_date" name="hotlead_date">
+              </div>
+              <div class="form-group-sub">
+                <label for="hotlead_time">Hotlead Time (HH:MM)</label>
+                <input type="time" id="hotlead_time" name="hotlead_time">
+              </div>
+              <div class="form-group-sub">
+                <label for="hotlead_type">Trigger Type</label>
+                <select id="hotlead_type" name="hotlead_type">
+                  <option value="">Default (From Query / DWH)</option>
+                  <option value="PUA">PUA</option>
+                  <option value="PIM">PIM</option>
+                  <option value="PAM">PAM</option>
+                  <option value="UA">UA</option>
+                  <option value="OLP">OLP</option>
+                  <option value="SCHD">SCHD</option>
+                  <option value="NUR">NUR</option>
+                </select>
+              </div>
+            </div>
+            <div class="override-hint">By default, GLID automatically fetches its authentic timestamp and trigger from Redash / PostgreSQL DWH. You can override them above to test specific arrival times.</div>
+          </div>
+        </div>
       </form>
     </div>
 
@@ -512,13 +609,37 @@
   </div>
 
   <script>
+    function toggleAccordion() {
+      const content = document.getElementById('accordion-content');
+      const icon = document.getElementById('accordion-icon');
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.innerText = '▼';
+      } else {
+        content.style.display = 'none';
+        icon.innerText = '▶';
+      }
+    }
+
     function quickSelect(glid) {
       document.getElementById('glid').value = glid;
+      // Reset manual overrides so this GLID loads its authentic DWH hotlead data
+      document.getElementById('hotlead_date').value = '';
+      document.getElementById('hotlead_time').value = '';
+      document.getElementById('hotlead_type').value = '';
+
       const buttons = document.querySelectorAll('.sample-chips .chip');
       buttons.forEach(b => b.classList.remove('chip-active'));
       event.target.classList.add('chip-active');
       document.getElementById('predict-form').dispatchEvent(new Event('submit'));
     }
+
+    // When typing a new GLID, clear overrides so it fetches authentic DWH data
+    document.getElementById('glid').addEventListener('input', function() {
+      document.getElementById('hotlead_date').value = '';
+      document.getElementById('hotlead_time').value = '';
+      document.getElementById('hotlead_type').value = '';
+    });
 
     document.getElementById('predict-form').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -528,6 +649,15 @@
       const resultsSection = document.getElementById('results-section');
       const glidVal = document.getElementById('glid').value;
 
+      const payload = { glid: glidVal };
+      const hDate = document.getElementById('hotlead_date').value;
+      const hTime = document.getElementById('hotlead_time').value;
+      const hType = document.getElementById('hotlead_type').value;
+
+      if (hDate) payload.hotlead_date = hDate;
+      if (hTime) payload.hotlead_time = hTime;
+      if (hType) payload.hotlead_type = hType;
+
       submitBtn.disabled = true;
       btnText.innerHTML = '<span class="spinner"></span> Scoring 15-Min Windows...';
 
@@ -535,7 +665,7 @@
         const response = await fetch('/api/predict', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ glid: glidVal }),
+          body: JSON.stringify(payload),
         });
 
         const data = await response.json();
@@ -570,6 +700,21 @@
         <div class="strip-item">Hotlead Trigger: <span class="strip-badge">${h.hl_trigger}</span></div>
         <div class="strip-item">Hotlead Arrived: <strong>${h.formatted_lead_time}</strong> <span class="age-badge">1 day old data</span></div>
       `;
+
+      // Auto-populate override inputs if not manually entered so user can see and adjust
+      const curDate = document.getElementById('hotlead_date').value;
+      const curTime = document.getElementById('hotlead_time').value;
+      const curType = document.getElementById('hotlead_type').value;
+
+      if (!curDate && h.lead_sent_time) {
+        document.getElementById('hotlead_date').value = h.lead_sent_time.slice(0, 10);
+      }
+      if (!curTime && h.lead_sent_time) {
+        document.getElementById('hotlead_time').value = h.lead_sent_time.slice(11, 16);
+      }
+      if (!curType && h.hl_trigger) {
+        document.getElementById('hotlead_type').value = h.hl_trigger;
+      }
 
       // 2. Date badge
       document.getElementById('target-date-badge').innerText = `Hotlead: ${h.formatted_lead_time} (1 day old)`;
