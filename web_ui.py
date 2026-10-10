@@ -29,7 +29,16 @@ def predict():
         except (ValueError, TypeError):
             glid = 79959
 
-        result = predict_im_milan(glid)
+        override_date = data.get("hotlead_date")
+        override_time = data.get("hotlead_time")
+        override_trigger = data.get("hotlead_type") or data.get("hl_trigger")
+
+        result = predict_im_milan(
+            glid=glid,
+            override_date=override_date,
+            override_time=override_time,
+            override_trigger=override_trigger,
+        )
         return jsonify(result)
 
     except ValueError as ve:
