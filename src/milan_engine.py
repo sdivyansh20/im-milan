@@ -2,6 +2,7 @@
 IM-Milan Integration Engine.
 Fetches seller and hotlead details from Redash PostgreSQL query and generates
 top 3 optimal 15-minute calling windows using IM-Milan Model 4.
+Calculates top 3 dominant parameters for each predicted calling window.
 """
 
 import os
@@ -17,6 +18,7 @@ from typing import Optional, Dict, Any, List
 import requests
 import joblib
 import pandas as pd
+import numpy as np
 
 # Add im-milan/btc_service to path
 BTC_DIR = Path(__file__).resolve().parent.parent / "im-milan" / "btc_service"
@@ -125,12 +127,13 @@ def get_offline_fallback(glid: int) -> Optional[Dict[str, Any]]:
 
     if sellers_csv.exists():
         try:
-            # Quick lookup using pandas chunking or grep
             df = pd.read_csv(sellers_csv)
             match = df[df["fk_glusr_usr_id"] == glid]
             if not match.empty:
                 r = match.iloc[0]
-                now_str = datetime.now().strftime("%Y-%m-%dT10:30:00")
+                # Hotlead timestamp (1 day ago)
+                yesterday = datetime.now() - timedelta(days=1)
+                now_str = yesterday.strftime("%Y-%m-%dT10:30:00")
                 return {
                     "fk_glusr_usr_id": float(glid),
                     "lead_sent_time": now_str,
@@ -154,7 +157,6 @@ def calculate_confidence_score(prob: float, attempt: int) -> int:
     Calculates an intuitive confidence score percentage (70% - 96%)
     calibrated against the baseline conversion rate for attempt 1, 2, or 3.
     """
-    # Baseline expected meeting rates
     baseline = {1: 0.035, 2: 0.018, 3: 0.012}.get(attempt, 0.02)
     ratio = prob / max(baseline, 0.005)
 
@@ -172,13 +174,91 @@ def calculate_confidence_score(prob: float, attempt: int) -> int:
     return min(conf, 96)
 
 
+def compute_top_dominant_parameters(
+    seller_row: Dict[str, Any],
+    slot_q: int = 75,
+    attempt_num: int = 1,
+    wait_min: int = 0,
+    gap_ratio: float = 1.0,
+) -> List[str]:
+    """
+    Identifies the top 3 parameters (e.g. State, City, Nature of Business, Business Type,
+    Turnover, Hotlead Trigger, GST Year, Cadence) that dominated the model's decision.
+    Uses model counterfactual sensitivity evaluation.
+    """
+    codes, gst, notes = ENC.encode(seller_row)
+    row = dict(codes)
+    row["gst_registration_year"] = np.nan if gst is None else gst
+    row["n"] = attempt_num
+    row["q"] = slot_q
+    row["dow"] = 0
+
+    df_actual = pd.DataFrame([row])[FEATURES]
+    p_base = MODEL.predict_proba(df_actual)[0, 1]
+
+    # Clean parameter value representations
+    city_val = str(seller_row.get("city_name") or seller_row.get("seller_city") or "Other").strip()
+    state_val = str(seller_row.get("state_name") or seller_row.get("seller_state") or "NA").strip()
+    nature_val = str(seller_row.get("nature_of_business") or "NA").strip()
+    btype_val = str(seller_row.get("business_type") or "NA").strip()
+    turnover_val = str(seller_row.get("glusr_gst_annual_turnover") or seller_row.get("annual_turnover") or "NA").strip()
+    trig_val = str(seller_row.get("hl_trigger") or seller_row.get("HL_Trigger") or seller_row.get("redis_bucket") or "PUA").strip()
+    yr_val = str(int(gst)) if gst else "Missing"
+    slot_hr = (slot_q * 15) // 60
+    slot_mn = (slot_q * 15) % 60
+    slot_time_str = f"{slot_hr:02d}:{slot_mn:02d}"
+
+    param_display = {
+        "seller_state": f"State ({state_val})",
+        "seller_city": f"City ({city_val})",
+        "nature_of_business": f"Nature of Business ({nature_val})",
+        "business_type": f"Business Type ({btype_val})",
+        "annual_turnover": f"Annual Turnover ({turnover_val})",
+        "redis_bucket": f"Hotlead Trigger ({trig_val})",
+        "gst_registration_year": f"GST Registration Year ({yr_val})",
+        "q": f"Time Slot ({slot_time_str})",
+    }
+
+    defaults = {
+        "seller_state": len(ENC.ref["seller_state"]),
+        "seller_city": len(ENC.ref["seller_city"]),
+        "nature_of_business": len(ENC.ref["nature_of_business"]),
+        "business_type": len(ENC.ref["business_type"]),
+        "annual_turnover": len(ENC.ref["annual_turnover"]),
+        "redis_bucket": len(ENC.ref["redis_bucket"]),
+        "gst_registration_year": np.nan,
+        "q": 60,
+    }
+
+    cf_rows = []
+    cf_keys = list(defaults.keys())
+    for feat in cf_keys:
+        r_cf = dict(row)
+        r_cf[feat] = defaults[feat]
+        cf_rows.append(r_cf)
+
+    p_cfs = MODEL.predict_proba(pd.DataFrame(cf_rows)[FEATURES])[:, 1]
+    impacts = {cf_keys[i]: abs(p_base - p_cfs[i]) for i in range(len(cf_keys))}
+
+    # Add Cadence interval impact for attempts 2 and 3
+    if attempt_num > 1 and wait_min > 0:
+        w_str = f"{wait_min//60}h" if wait_min >= 120 and wait_min % 60 == 0 else (f"{wait_min/60:.1f}h" if wait_min >= 120 else f"{wait_min}m")
+        param_display["cadence"] = f"Cadence Interval ({w_str} cooldown)"
+        impacts["cadence"] = abs(gap_ratio - 1.0) * p_base
+
+    sorted_feats = sorted(impacts.items(), key=lambda x: x[1], reverse=True)
+    top_3 = [param_display.get(f[0], f[0]) for f in sorted_feats[:3]]
+    return top_3
+
+
 def predict_im_milan(glid: int) -> Dict[str, Any]:
     """
     End-to-end IM-Milan prediction pipeline:
     1. Fetch seller details & hotlead timestamp from Redash PG SQL query.
     2. Score all 15-minute slots using Model 4.
     3. Generate the 3-attempt sequence plan strictly after the hotlead timestamp.
-    4. Formulate short reasoning highlighting top decision drivers.
+    4. Compute top 3 dominant parameters for each window.
+    5. Formulate concise reasoning highlighting top decision drivers.
     """
     # Step 1: Query Redash
     row = fetch_from_redash(glid)
@@ -204,7 +284,8 @@ def predict_im_milan(glid: int) -> Dict[str, Any]:
             start_dt = start_dt.astimezone(IST).replace(tzinfo=None)
         start_dt = start_dt.replace(second=0, microsecond=0)
     except Exception:
-        start_dt = datetime.now().replace(hour=10, minute=30, second=0, microsecond=0)
+        yesterday = datetime.now() - timedelta(days=1)
+        start_dt = yesterday.replace(hour=10, minute=30, second=0, microsecond=0)
 
     # Clean registration year if it's a date string
     reg_year = row.get("glusr_gst_registration_year") or row.get("gst_registration_year")
@@ -244,8 +325,17 @@ def predict_im_milan(glid: int) -> Dict[str, Any]:
         is_same_day = st.date() == start_dt.date()
         relative_day = "Today" if is_same_day else "Next Day"
 
+        # Compute top 3 dominant decision parameters
+        top_3_params = compute_top_dominant_parameters(
+            row,
+            slot_q=s["slot"] + 36,
+            attempt_num=attempt_num,
+            wait_min=res["wait"][k],
+            gap_ratio=res["gap_ratio"][k],
+        )
+
         # Generate short reasoning focusing strictly on top parameters
-        reasoning = PLANNER.reason(
+        base_reasoning = PLANNER.reason(
             P,
             attempt_num,
             s,
@@ -254,6 +344,11 @@ def predict_im_milan(glid: int) -> Dict[str, Any]:
             res["gap_ratio"][k],
             res["support"][k],
             short=True,
+        )
+
+        full_reasoning = (
+            f"Top Dominant Parameters: {', '.join(top_3_params)}. "
+            f"{base_reasoning}"
         )
 
         predictions.append({
@@ -270,7 +365,10 @@ def predict_im_milan(glid: int) -> Dict[str, Any]:
             "slot_end": en.isoformat(),
             "confidence_score": f"{conf_pct}% Confidence",
             "confidence_pct": conf_pct,
-            "reasoning": reasoning,
+            "dominant_parameters": top_3_params,
+            "dominant_parameters_str": " · ".join(top_3_params),
+            "reasoning": full_reasoning,
+            "base_reasoning": base_reasoning,
             "wait_after_previous_min": res["wait"][k] if k > 0 else None,
             "chance_of_meeting": round(prob, 4),
         })
@@ -306,6 +404,7 @@ def predict_im_milan(glid: int) -> Dict[str, Any]:
             "lead_sent_time": start_dt.isoformat(),
             "formatted_lead_time": formatted_lead_dt,
             "hl_trigger": hl_trigger,
+            "data_age": "1 day old",
             "source": "Redash PostgreSQL DWH" if is_live_redash else "Offline Local Cache",
         },
         "predictions": predictions,

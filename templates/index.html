@@ -58,14 +58,32 @@
       font-size: 14px;
       color: #6b7280;
     }
+    .header-pills {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
     .guardrail-pill {
-      margin-top: 12px;
       display: inline-flex;
       align-items: center;
       gap: 6px;
       background: #f0fdf4;
       border: 1px solid #bbf7d0;
       color: #166534;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 6px;
+    }
+    .data-age-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
       font-size: 12px;
       font-weight: 600;
       padding: 5px 12px;
@@ -201,6 +219,18 @@
       border-radius: 6px;
       font-weight: 600;
       font-size: 12px;
+    }
+    .age-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 11px;
     }
 
     .section-title {
@@ -342,12 +372,43 @@
       padding: 2px 8px;
       border-radius: 12px;
     }
+
+    /* Dominant Parameters Box */
+    .dominant-params-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+    }
+    .dominant-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+    .param-chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .param-chip {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
     .reasoning-text {
       font-size: 13.5px;
       color: #374151;
       line-height: 1.5;
-      padding-top: 10px;
-      border-top: 1px solid #f3f4f6;
+      padding-top: 8px;
     }
 
     /* Policy Note */
@@ -388,12 +449,22 @@
         <span class="brand-dot"></span> IM-Milan
       </div>
       <h1>IM-Milan: Best Time to Call Predictor</h1>
-      <p class="subtitle">AI-powered 15-minute call windows driven by IM-Milan Model 4 and live Redash PostgreSQL DWH records.</p>
-      <div class="guardrail-pill">
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 10a1 1 0 011 1v2a1 1 0 11-2 0v-2a1 1 0 011-1zm0-4a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
-        </svg>
-        Operational Guardrail: Strictly 09:00 AM – 09:00 PM (15-min slots strictly after Hotlead timestamp)
+      <p class="subtitle">AI-powered 15-minute call windows driven by IM-Milan Model 4.</p>
+      
+      <!-- Top Notices -->
+      <div class="header-pills">
+        <div class="guardrail-pill">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM10 10a1 1 0 011 1v2a1 1 0 11-2 0v-2a1 1 0 011-1zm0-4a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
+          </svg>
+          Operational Guardrail: Strictly 09:00 AM – 09:00 PM (15-min slots after Hotlead)
+        </div>
+        <div class="data-age-pill">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+          </svg>
+          Notice: Hotlead data is 1 day old
+        </div>
       </div>
     </header>
 
@@ -443,11 +514,9 @@
   <script>
     function quickSelect(glid) {
       document.getElementById('glid').value = glid;
-      // Highlight active chip
       const buttons = document.querySelectorAll('.sample-chips .chip');
       buttons.forEach(b => b.classList.remove('chip-active'));
       event.target.classList.add('chip-active');
-      // Trigger submission
       document.getElementById('predict-form').dispatchEvent(new Event('submit'));
     }
 
@@ -460,7 +529,7 @@
       const glidVal = document.getElementById('glid').value;
 
       submitBtn.disabled = true;
-      btnText.innerHTML = '<span class="spinner"></span> Querying Redash & Planning...';
+      btnText.innerHTML = '<span class="spinner"></span> Scoring 15-Min Windows...';
 
       try {
         const response = await fetch('/api/predict', {
@@ -488,7 +557,7 @@
     });
 
     function renderResults(data) {
-      // 1. Seller strip
+      // 1. Seller strip (without data source section)
       const s = data.seller;
       const h = data.hotlead;
 
@@ -499,21 +568,25 @@
         <div class="strip-item">Turnover: <strong>${s.turnover}</strong></div>
         <div class="strip-item">GST Year: <strong>${s.gst_registration_year}</strong></div>
         <div class="strip-item">Hotlead Trigger: <span class="strip-badge">${h.hl_trigger}</span></div>
-        <div class="strip-item">Hotlead Arrived: <strong>${h.formatted_lead_time}</strong></div>
-        <div class="strip-item"><span class="strip-badge" style="background:#f0fdf4; border-color:#bbf7d0; color:#166534;">📡 ${h.source}</span></div>
+        <div class="strip-item">Hotlead Arrived: <strong>${h.formatted_lead_time}</strong> <span class="age-badge">1 day old data</span></div>
       `;
 
       // 2. Date badge
-      document.getElementById('target-date-badge').innerText = `Hotlead: ${h.formatted_lead_time}`;
+      document.getElementById('target-date-badge').innerText = `Hotlead: ${h.formatted_lead_time} (1 day old)`;
 
       // 3. Render Top 3 Cards
       const container = document.getElementById('windows-list');
       container.innerHTML = '';
 
-      data.predictions.forEach((p, idx) => {
+      data.predictions.forEach((p) => {
         const isPrimary = p.rank === 1;
         const card = document.createElement('div');
         card.className = `window-card ${isPrimary ? 'primary' : ''}`;
+
+        const domChips = (p.dominant_parameters || []).map((param, i) => 
+          `<span class="param-chip">${i + 1}. ${param}</span>`
+        ).join('');
+
         card.innerHTML = `
           <div class="card-top">
             <div class="card-meta-left">
@@ -532,8 +605,14 @@
             <div class="time-slot">${p.time_window}</div>
             <span class="duration-tag">15 Mins</span>
           </div>
+          <div class="dominant-params-box">
+            <div class="dominant-title">Top 3 Dominant Parameters:</div>
+            <div class="param-chips-row">
+              ${domChips}
+            </div>
+          </div>
           <div class="reasoning-text">
-            ${p.reasoning}
+            <strong>Decision Reasoning:</strong> ${p.base_reasoning || p.reasoning}
           </div>
         `;
         container.appendChild(card);
